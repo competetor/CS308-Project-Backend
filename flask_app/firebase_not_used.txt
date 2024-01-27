@@ -1,0 +1,51 @@
+import firebase_admin
+from firebase_admin import credentials, auth
+from firebase import service_acc_json
+
+
+cred = credentials.Certificate(service_acc_json)
+firebase_admin.initialize_app(cred)
+
+
+service_acc_json = {    
+  "type": "service_account",
+  "project_id": "cs308-b4e1d",
+  "private_key_id": private_key_id_here,
+  "private_key": private_key_here,
+  "client_email": clien_email_here,
+  "client_id": client_id_here,
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": cert_url_here,
+  "universe_domain": "googleapis.com"    
+}
+
+@app.route('/api/google_login', methods=['POST'])
+def google_login():
+    data = request.get_json()
+    id_token = data.get('id_token')
+
+    if not id_token:
+        return jsonify({'message': 'ID token is required'}), 400
+
+    try:        
+        decoded_token = auth.verify_id_token(id_token)        
+        user_uid = decoded_token['uid']
+        
+        jwt_token = jwt.encode({
+            'user_uid': user_uid,
+            'exp': datetime.utcnow() + timedelta(minutes=30)
+        }, app.config['SECRET_KEY'], algorithm='HS256')
+
+        return jsonify({'message': 'Google login successful', 'token': jwt_token}), 200
+
+    except auth.ExpiredIdTokenError:
+        return jsonify({'message': 'ID token has expired'}), 401
+    except auth.InvalidIdTokenError:
+        return jsonify({'message': 'Invalid ID token'}), 401
+    except Exception as e:
+        return jsonify({'message': f'Error: {str(e)}'}), 500
+
+
+
